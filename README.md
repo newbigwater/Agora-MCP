@@ -9,7 +9,7 @@
 1. [프로젝트 소개](#-프로젝트-소개)
 2. [아키텍처](#-아키텍처)
 3. [핵심 기능 및 도구 (Tools)](#-핵심-기능-및-도구-tools)
-4. [설치 및 요구사항](#-설치-및-요구사항)
+4. [GitHub Clone 및 설치 가이드 (기본)](#-github-clone-및-설치-가이드-기본)
 5. [에이전트별 등록 가이드](#-에이전트별-등록-가이드)
    - [Claude Code](#1-claude-code)
    - [Antigravity (Agy)](#2-antigravity-agy)
@@ -78,57 +78,91 @@
 
 ---
 
-## 📦 설치 및 요구사항
+## 📦 GitHub Clone 및 설치 가이드 (기본)
 
-- **Python**: 3.10 이상
-- **의존 패키지**: `mcp>=1.3.0`, `pydantic>=2.0.0`
+Agora-MCP는 GitHub 저장소를 로컬 환경에 직접 복제(Clone)하여 사용하는 방식을 기본으로 합니다.
 
+### 1. 저장소 복제 (Clone)
 ```bash
-# 저장소 복제
 git clone https://github.com/newbigwater/Agora-MCP.git
 cd Agora-MCP
+```
 
-# 패키지 설치
+### 2. Python 가상환경 생성 및 활성화
+안정적인 패키지 격리를 위해 가상환경 생성을 권장합니다.
+
+- **Windows (PowerShell)**:
+  ```powershell
+  python -m venv .venv
+  .venv\Scripts\Activate.ps1
+  ```
+- **macOS / Linux**:
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
+
+### 3. 패키지 의존성 설치
+저장소 루트 디렉토리에서 다음 명령어로 편집 가능 모드(editable mode)로 설치합니다:
+```bash
 pip install -e .
+```
+또는 `requirements.txt`를 통한 설치:
+```bash
+pip install -r requirements.txt
 ```
 
 ---
 
 ## 🚀 에이전트별 등록 가이드
 
-각 코딩 에이전트 CLI에서 `Agora-MCP`를 한 줄로 손쉽게 등록할 수 있습니다.
+Clone한 로컬 디렉토리 경로를 바탕으로 각 AI 에이전트에 Agora-MCP를 등록합니다.
 
 ### 1. Claude Code
+저장소 디렉토리 내에서 실행 시:
 ```bash
-claude mcp add agora python -m agora_mcp.server
+claude mcp add agora -- python -m agora_mcp.server
 ```
-또는 스크립트 직접 지정:
+특정 경로 또는 가상환경 Python 인터프리터를 지정하는 경우:
+- **Windows**:
+  ```powershell
+  claude mcp add agora -- D:\path\to\Agora-MCP\.venv\Scripts\python.exe -m agora_mcp.server
+  ```
+- **macOS / Linux**:
+  ```bash
+  claude mcp add agora -- /path/to/Agora-MCP/.venv/bin/python -m agora_mcp.server
+  ```
+또는 스크립트 파일 직접 지정:
 ```bash
-claude mcp add agora python /path/to/Agora-MCP/run_server.py
+claude mcp add agora -- python /path/to/Agora-MCP/run_server.py
 ```
 
 ### 2. Antigravity (Agy)
+저장소 디렉토리 내에서 실행 시:
 ```bash
 agy mcp add agora python -m agora_mcp.server
 ```
-또는 `agora-mcp` CLI 바이너리 사용:
+전역 진입점 스크립트 실행 시:
 ```bash
-agy mcp add agora agora-mcp
+agy mcp add agora python /path/to/Agora-MCP/run_server.py
 ```
 
 ### 3. OpenAI Codex / Cursor / Windsurf
-`~/.codex/config.json` 또는 Cursor / Windsurf의 MCP 설정 JSON(`settings.json`):
+`~/.codex/config.json` 또는 IDE의 `settings.json` 내 `mcpServers` 블록에 Clone 경로를 등록합니다:
 
 ```json
 {
   "mcpServers": {
     "agora": {
       "command": "python",
-      "args": ["-m", "agora_mcp.server"]
+      "args": ["-m", "agora_mcp.server"],
+      "cwd": "/path/to/Agora-MCP"
     }
   }
 }
 ```
+
+> **가상환경을 사용하는 경우**: `"command"`에 가상환경의 python 실행 파일 경로(예: `/path/to/Agora-MCP/.venv/bin/python` 또는 `D:\\path\\to\\Agora-MCP\\.venv\\Scripts\\python.exe`)를 입력합니다.
 
 ---
 
@@ -163,7 +197,7 @@ agy mcp add agora agora-mcp
 
 ## 🧪 테스트 실행
 
-`pytest`를 통해 모든 데이터 모델, SQLite 영속성, MCP 도구의 무결성을 검증할 수 있습니다.
+Clone 후 가상환경이 활성화된 상태에서 `pytest`를 실행하여 모든 모듈의 정상 동작을 검증합니다:
 
 ```bash
 # 전체 테스트 실행
