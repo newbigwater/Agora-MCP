@@ -3,7 +3,11 @@ Agora-MCP FastMCP 서버 정의
 AI 코딩 에이전트 간 메시징 및 피어 리뷰 MCP Tool을 노출합니다.
 """
 from typing import Optional, List, Dict, Any
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP
+except (ImportError, ModuleNotFoundError):
+    # mcp 2.x 이상에서 FastMCP가 MCPServer로 개명된 경우 호환성 지원
+    from mcp.server.mcpserver import MCPServer as FastMCP
 from agora_mcp.models import ReviewVerdict
 from agora_mcp.storage import AgoraStorage
 
