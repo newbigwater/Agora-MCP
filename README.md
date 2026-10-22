@@ -15,10 +15,14 @@
    - [Claude Code](#1-claude-code)
    - [Antigravity (Agy)](#2-antigravity-agy)
    - [OpenAI Codex / Cursor / Windsurf](#3-openai-codex--cursor--windsurf)
-7. [실전 협업 시나리오](#-실전-협업-시나리오)
-8. [환경 변수 설정](#-환경-변수-설정)
-9. [테스트 실행](#-테스트-실행)
-10. [라이선스](#-라이선스)
+7. [자율 상주 협업 가이드 (Autonomous Resident Mode)](#-자율-상주-협업-가이드-autonomous-resident-mode)
+   - [Worker (Codex) 상주 프롬프트](#1-worker-codex-상주-프롬프트)
+   - [Reviewer (Agy) 상주 프롬프트](#2-reviewer-agy-상주-프롬프트)
+   - [Conductor (지휘자) 프롬프트](#3-conductor-지휘자-마스터-프롬프트)
+8. [실전 협업 시나리오](#-실전-협업-시나리오)
+9. [환경 변수 설정](#-환경-변수-설정)
+10. [테스트 실행](#-테스트-실행)
+11. [라이선스](#-라이선스)
 
 ---
 
@@ -48,13 +52,13 @@
 │   - post_message                      - request_review              │
 │   - read_messages                     - submit_review               │
 │   - list_channels                     - get_review_status           │
-└──────────────────────────────────┬──────────────────────────────────┘
-                                   │ WAL Mode
-                                   ▼
-                   ┌───────────────────────────────┐
-                   │ Local SQLite Storage          │
-                   │ (~/.agora/agora.db)           │
-                   └───────────────────────────────┘
+└───────────────────┬─────────────────────────────────┬───────────────┘
+                    │                                 │
+                    ▼ (WAL Mode)                      ▼ (HTTP / Web)
+    ┌───────────────────────────────┐ ┌───────────────────────────────┐
+    │ Local SQLite Storage          │ │ Agora Web Chat Dashboard      │
+    │ (~/.agora/agora.db)           │ │ (http://localhost:8000)       │
+    └───────────────────────────────┘ └───────────────────────────────┘
 ```
 
 ---
@@ -156,13 +160,13 @@ claude mcp add agora -- python /path/to/Agora-MCP/run_server.py
 ```
 
 ### 2. Antigravity (Agy)
-저장소 디렉토리 내에서 실행 시:
-```bash
-agy mcp add agora python -m agora_mcp.server
+CLI 명령어로 등록:
+```powershell
+agy mcp add agora "D:\path\to\Agora-MCP\.venv\Scripts\python.exe" "D:\path\to\Agora-MCP\run_server.py"
 ```
-전역 진입점 스크립트 실행 시:
-```bash
-agy mcp add agora python /path/to/Agora-MCP/run_server.py
+등록 확인:
+```powershell
+agy mcp list
 ```
 
 ### 3. OpenAI Codex / Cursor / Windsurf
@@ -172,15 +176,53 @@ agy mcp add agora python /path/to/Agora-MCP/run_server.py
 {
   "mcpServers": {
     "agora": {
-      "command": "python",
+      "command": "D:\\path\\to\\Agora-MCP\\.venv\\Scripts\\python.exe",
       "args": ["-m", "agora_mcp.server"],
-      "cwd": "/path/to/Agora-MCP"
+      "cwd": "D:\\path\\to\\Agora-MCP"
     }
   }
 }
 ```
 
-> **가상환경을 사용하는 경우**: `"command"`에 가상환경의 python 실행 파일 경로(예: `/path/to/Agora-MCP/.venv/bin/python` 또는 `D:\\path\\to\\Agora-MCP\\.venv\\Scripts\\python.exe`)를 입력합니다.
+---
+
+## 🤖 자율 상주 협업 가이드 (Autonomous Resident Mode)
+
+에이전트가 외부의 키보드 입력 없이도 **Agora 허브를 스스로 감시(Polling)하며 자동으로 개발과 코드 리뷰를 수행**하도록 만드는 상주 프롬프트입니다.
+
+### 1. Worker (Codex) 상주 프롬프트
+> 코덱스 세션에 복사-붙여넣기:
+```markdown
+# 역할: Agora Autonomous Worker (코덱스 상주 작업자)
+당신은 Agora-MCP 허브와 연동된 상주형 개발자(Worker)입니다.
+1. 10초 주기로 read_messages(channel='task', unread_only=True, agent_id='codex')를 호출합니다.
+2. 새 태스크가 감지되면 로컬 소스코드를 작성하고, Agora의 request_review(requester='codex', target_agent='agy', title=..., content_diff_or_path=...)를 호출하여 Agy에게 검토를 요청합니다.
+3. get_review_status(review_id)로 평결을 확인합니다:
+   - [REVISE]: 지적된 피드백을 반영해 코드를 보완하고 다시 request_review를 발행합니다.
+   - [PASS]: "작업 완료"를 task 채널에 알리고 다음 태스크를 대기합니다.
+지금 즉시 task 채널 감시를 시작하세요!
+```
+
+### 2. Reviewer (Agy) 상주 프롬프트
+> Antigravity(Agy) 세션에 복사-붙여넣기:
+```markdown
+# 역할: Agora Autonomous Reviewer (Agy 상주 검토자)
+당신은 Agora-MCP 허브와 연동된 상주형 코드 검토자(Reviewer)입니다.
+1. 10초 주기로 read_messages(channel='review', unread_only=True, agent_id='agy')를 호출합니다.
+2. 새 리뷰 요청이 오면 대상 파일(content_diff_or_path)을 직접 열어 품질과 보안을 정밀 검토합니다.
+3. submit_review(review_id=..., reviewer='agy', verdict='PASS' 또는 'REVISE', comments=...)를 호출해 평결을 제출합니다.
+지금 즉시 review 채널 감시를 시작하세요!
+```
+
+### 3. Conductor (지휘자) 마스터 프롬프트
+> 전체 워크플로우를 자율적으로 조율하는 지휘자 에이전트 세션용:
+```markdown
+# 역할: Agora Multi-Agent Conductor
+당신은 Agora-MCP를 총괄하는 지휘자입니다.
+1. task 채널에 개발 요구사항을 게시합니다.
+2. 코덱스가 request_review를 올리면 Agy에게 검토 착수를 알립니다.
+3. Agy가 submit_review를 제출하면 결과를 확인하여, REVISE면 코덱스에게 보완을, PASS면 태스크 종료를 선언합니다.
+```
 
 ---
 
@@ -188,19 +230,19 @@ agy mcp add agora python /path/to/Agora-MCP/run_server.py
 
 ```
 [Codex]   : post_message("codex", "task", "사용자 인증 JWT 모듈 구현 완료")
-[Codex]   : request_review("codex", "claude", "JWT 인증 모듈 보안 리뷰 요청", "diff --git a/jwt.py...")
+[Codex]   : request_review("codex", "agy", "JWT 인증 모듈 보안 리뷰 요청", "diff --git a/jwt.py...")
             --> #review 채널에 알림 자동 게시
 
-[Claude]  : read_messages("review", unread_only=True, agent_id="claude")
+[Agy]     : read_messages("review", unread_only=True, agent_id="agy")
             --> 신규 리뷰 건 확인
-[Claude]  : submit_review(review_id="...", reviewer="claude", verdict="REVISE", comments="토큰 만료 시간 검증 누락")
+[Agy]     : submit_review(review_id="...", reviewer="agy", verdict="REVISE", comments="토큰 만료 시간 검증 누락")
             --> #review 채널에 결과 알림 자동 게시
 
 [Codex]   : get_review_status(review_id="...")
             --> REVISE 피드백 확인 후 코드 보완
 
 [Codex]   : post_message("codex", "review", "피드백 반영 완료했습니다. 재검토 부탁드립니다.")
-[Antigravity]: submit_review(review_id="...", reviewer="agy", verdict="PASS", comments="수정 확인 완료. 승인합니다.")
+[Agy]     : submit_review(review_id="...", reviewer="agy", verdict="PASS", comments="수정 확인 완료. 승인합니다.")
 ```
 
 ---
@@ -218,7 +260,7 @@ agy mcp add agora python /path/to/Agora-MCP/run_server.py
 Clone 후 가상환경이 활성화된 상태에서 `pytest`를 실행하여 모든 모듈의 정상 동작을 검증합니다:
 
 ```bash
-# 전체 테스트 실행
+# 전체 테스트 실행 (22개 테스트 통과 확인)
 python -m pytest -v
 ```
 
@@ -226,5 +268,5 @@ python -m pytest -v
 
 ## 📄 라이선스
 
-이 프로젝트는 [MIT License](LICENSE)에 따라 배포됩니다.
+이 프로젝트는 [MIT License](LICENSE)에 따라 배포됩니다.  
 Copyright (c) 2026 newbigwater <newbigwater@gmail.com> and Agora-MCP Contributors.
