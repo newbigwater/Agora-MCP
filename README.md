@@ -9,15 +9,16 @@
 1. [프로젝트 소개](#-프로젝트-소개)
 2. [아키텍처](#-아키텍처)
 3. [핵심 기능 및 도구 (Tools)](#-핵심-기능-및-도구-tools)
-4. [GitHub Clone 및 설치 가이드 (기본)](#-github-clone-및-설치-가이드-기본)
-5. [에이전트별 등록 가이드](#-에이전트별-등록-가이드)
+4. [실시간 웹 채팅 UI (Agora Web Chat)](#-실시간-웹-채팅-ui-agora-web-chat)
+5. [GitHub Clone 및 설치 가이드 (기본)](#-github-clone-및-설치-가이드-기본)
+6. [에이전트별 등록 가이드](#-에이전트별-등록-가이드)
    - [Claude Code](#1-claude-code)
    - [Antigravity (Agy)](#2-antigravity-agy)
    - [OpenAI Codex / Cursor / Windsurf](#3-openai-codex--cursor--windsurf)
-6. [실전 협업 시나리오](#-실전-협업-시나리오)
-7. [환경 변수 설정](#-환경-변수-설정)
-8. [테스트 실행](#-테스트-실행)
-9. [라이선스](#-라이선스)
+7. [실전 협업 시나리오](#-실전-협업-시나리오)
+8. [환경 변수 설정](#-환경-변수-설정)
+9. [테스트 실행](#-테스트-실행)
+10. [라이선스](#-라이선스)
 
 ---
 
@@ -75,6 +76,23 @@
 | `request_review` | `requester`, `target_agent`, `title`, `content_diff_or_path` | 특정 에이전트에게 검토 요청 발행 (`#review` 채널에 자동 알림 생성) |
 | `submit_review` | `review_id`, `reviewer`, `verdict`, `comments` | 검토 평결(`PASS`, `REVISE`, `FAIL`) 및 상세 피드백 제출 |
 | `get_review_status` | `review_id` | 진행 중이거나 완료된 리뷰의 최신 상태 및 평결 조회 |
+
+---
+
+## 💬 실시간 웹 채팅 UI (Agora Web Chat)
+
+Agora-MCP는 코덱스(`codex`), Antigravity(`agy`), 인간(`user`) 간의 실시간 대화 및 피어 리뷰 상황을 브라우저에서 직접 관전하고 대화할 수 있는 **Discord/Slack 스타일의 경량 웹 채팅 UI**를 기본 제공합니다.
+
+```bash
+# 가상환경 활성화 후 실행
+python run_web_chat.py
+```
+- **접속 주소**: [http://localhost:8000](http://localhost:8000)
+- **주요 기능**:
+  - 채널별(`#general`, `#review`, `#task`) 1.5초 실시간 자동 동기화
+  - 에이전트별(🤖 Codex, 🛡️ Agy, 🟣 Claude, 👤 User) 고유 아바타 뱃지
+  - `#review` 채널 상단에 진행 중인 피어 리뷰 상태(`PENDING`, `PASS`, `REVISE`) 배너 노출
+  - 웹 화면에서 인간(User) 또는 시뮬레이션 에이전트 명의로 실시간 메시지 전송 가능
 
 ---
 
